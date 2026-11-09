@@ -7,6 +7,9 @@ source, output, width, height, samples, device = sys.argv[sys.argv.index("--") +
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=source)
 scene = bpy.context.scene
+for obj in scene.objects:
+    if obj.type == "MESH" and (obj.get("rigCameraHidden") or obj.name.startswith("Потолок")):
+        obj.visible_camera = False
 camera = next((obj for obj in scene.objects if obj.type == "CAMERA"), None)
 if camera is None:
     raise RuntimeError("Scene has no render camera")
