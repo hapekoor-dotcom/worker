@@ -1,4 +1,6 @@
 import base64
+import gzip
+import io
 import json
 import os
 from pathlib import Path
@@ -21,7 +23,15 @@ def handler(job):
     if not (256 <= width <= 1920 and 256 <= height <= 1920 and 1 <= samples <= 512):
         return {"error": "Invalid render dimensions or samples"}
 
-    if not 20 <= len(scene) <= 6_750_000 or scene[:4] != b"glTF":
+    if len(scene) > 6_750_000:
+        return {"error": "Scene exceeds queue limit"}
+    if payload.get("encoding") == "gzip":
+        try:
+            with gzip.GzipFile(fileobj=io.BytesIO(scene)) as compressed:
+                scene = compressed.read(64_000_001)
+        except (OSError, EOFError):
+            return {"error": "Invalid compressed scene"}
+    if not 20 <= len(scene) <= 64_000_000 or scene[:4] != b"glTF":
         return {"error": "Invalid GLB scene"}
     version, length, json_length = struct.unpack_from("<III", scene, 4)
     if version != 2 or length != len(scene) or scene[16:20] != b"JSON" or json_length > length-20:
